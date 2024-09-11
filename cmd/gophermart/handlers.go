@@ -44,6 +44,7 @@ func (handler Handler) get_accrual(order_id string) (*AccrualJSONRequest, error)
 		log.Println("accrual read response body error", err.Error())
 		return nil, err
 	}
+	defer res.Body.Close()
 	log.Println("read json")
 	err = json.Unmarshal(buf.Bytes(), &req)
 	if err != nil {
@@ -168,10 +169,10 @@ func (handler Handler) orders_post(w http.ResponseWriter, r *http.Request) {
 	}
 
 	body, err := io.ReadAll(r.Body)
+	defer r.Body.Close()
 	if err != nil {
 		log.Println("order number read error", err.Error)
 	}
-	defer r.Body.Close()
 	orderId := string(body)
 	if _, err := strconv.Atoi(orderId); err != nil {
 		http.Error(w, "not numeric", http.StatusUnprocessableEntity)
