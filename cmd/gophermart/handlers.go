@@ -99,7 +99,11 @@ func (handler Handler) register_post(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
-
+	cookies := &http.Cookie{
+		Name:  "UserID",
+		Value: cookie,
+	}
+	http.SetCookie(w, cookies)
 	w.WriteHeader(http.StatusOK)
 }
 
