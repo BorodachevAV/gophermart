@@ -24,7 +24,7 @@ type UserJSONRequest struct {
 }
 
 type AccrualJSONRequest struct {
-	Order   string
+	Order   int
 	Status  string
 	Accrual int
 }
@@ -175,6 +175,7 @@ func (handler Handler) orders_post(w http.ResponseWriter, r *http.Request) {
 	}
 
 	//check if used
+	log.Println("check if used")
 	DBUserID, err := handler.DBhandler.GetUseIDByOrderID(orderId)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
@@ -190,8 +191,8 @@ func (handler Handler) orders_post(w http.ResponseWriter, r *http.Request) {
 		}
 	} else {
 		accrual, err := handler.get_accrual(orderId)
-
-		err = handler.DBhandler.RegisterOrder(orderId, DBUserID, accrual.Accrual)
+		log.Println("register order")
+		err = handler.DBhandler.RegisterOrder(orderId, userID.Value, accrual.Accrual)
 		if err != nil {
 			http.Error(w, err.Error(), http.StatusInternalServerError)
 			return

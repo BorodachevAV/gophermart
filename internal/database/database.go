@@ -109,8 +109,11 @@ func (handler DBHandler) GetUseIDByOrderID(order string) (string, error) {
 	var ID string
 
 	err := handler.db.QueryRow(
-		"SELECT user_id FROM orders where order =$1", order).Scan(&ID)
+		"SELECT user_id FROM orders where order_id =$1", order).Scan(&ID)
 	if err != nil {
+		if err.Error() == sql.ErrNoRows.Error() {
+			return "", nil
+		}
 		log.Println(err.Error())
 		return "", err
 	}
@@ -119,7 +122,7 @@ func (handler DBHandler) GetUseIDByOrderID(order string) (string, error) {
 
 func (handler DBHandler) RegisterOrder(orderID string, UserID string, accrual int) error {
 
-	_, err := handler.db.Exec("INSERT INTO orders (order, user_id, accrual) VALUES($1,$2,$3)", orderID, UserID)
+	_, err := handler.db.Exec("INSERT INTO orders (order_id, user_id, accrual) VALUES($1,$2,$3)", orderID, UserID, accrual)
 	if err != nil {
 		return err
 	}
