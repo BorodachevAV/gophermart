@@ -167,7 +167,10 @@ func (handler Handler) orders_post(w http.ResponseWriter, r *http.Request) {
 
 	}
 
-	body, _ := io.ReadAll(r.Body)
+	body, err := io.ReadAll(r.Body)
+	if err != nil {
+		log.Println("order number read error", err.Error)
+	}
 	defer r.Body.Close()
 	orderId := string(body)
 	if _, err := strconv.Atoi(orderId); err != nil {
