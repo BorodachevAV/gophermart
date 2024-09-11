@@ -168,6 +168,7 @@ func (handler Handler) orders_post(w http.ResponseWriter, r *http.Request) {
 	}
 
 	body, _ := io.ReadAll(r.Body)
+	defer r.Body.Close()
 	orderId := string(body)
 	if _, err := strconv.Atoi(orderId); err != nil {
 		http.Error(w, "not numeric", http.StatusUnprocessableEntity)
