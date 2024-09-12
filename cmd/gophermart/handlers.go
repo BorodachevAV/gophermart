@@ -28,7 +28,14 @@ type UserJSONRequest struct {
 type AccrualJSONRequest struct {
 	Order   string
 	Status  string
-	Accrual float64
+	Accrual float64 `json:"accrual,omitempty"`
+}
+
+type OrderGetJSON struct {
+	Order        string  `json:"order"`
+	Status       string  `json:"sttus"`
+	Accrual      float64 `json:"accrual,omitempty"`
+	Processed_at string  `json:"processed_at"`
 }
 
 func (handler Handler) getAccrual(orderID string) (*AccrualJSONRequest, error) {
@@ -164,7 +171,32 @@ func (handler Handler) loginPost(w http.ResponseWriter, r *http.Request) {
 }
 
 func (handler Handler) ordersGet(w http.ResponseWriter, r *http.Request) {
+	userID, err := r.Cookie("UserID")
+	if err != nil {
+		if errors.Is(err, http.ErrNoCookie) {
+			http.Error(w, "Unauthorized", http.StatusUnauthorized)
+			return
+		}
+	}
+	orders, err := handler.DBhandler.GetUserOrdersByUserID(userID.Value)
+	var resultOrders []OrderGetJSON
+	for _, order := range orders {
+		accrual, err := handler.getAccrual(order[0])
+		if err != nil {
+			log.Println("get order accrual error", err.Error())
+		}
+		if accrual != nil {
+			resultOrder := OrderGetJSON{
+				Order:        order[0],
+				Status:       accrual.Status,
+				Accrual:      accrual.Accrual,
+				Processed_at: order[1],
+			}
+			resultOrders = append(resultOrders, resultOrder)
+		}
 
+	}
+	log.Println(resultOrders)
 }
 
 func (handler Handler) ordersPost(w http.ResponseWriter, r *http.Request) {

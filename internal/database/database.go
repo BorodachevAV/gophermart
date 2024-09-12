@@ -120,6 +120,29 @@ func (handler DBHandler) GetUseIDByOrderID(order string) (string, error) {
 	return ID, nil
 }
 
+func (handler DBHandler) GetUserOrdersByUserID(userID string) ([][]string, error) {
+	var results [][]string
+	var temp_slice []string
+	rows, err := handler.db.Query(
+		"SELECT order_id, uploadet_at FROM orders where user_id =$1", userID)
+	if err != nil {
+		if err.Error() == sql.ErrNoRows.Error() {
+			return results, nil
+		}
+		log.Println(err.Error())
+		return results, err
+	}
+	var temp_ID string
+	var temp_stamp string
+	for rows.Next() {
+		rows.Scan(&temp_ID, &temp_stamp)
+		temp_slice = append(temp_slice, temp_ID, temp_stamp)
+		results = append(results, temp_slice)
+	}
+
+	return results, nil
+}
+
 func (handler DBHandler) RegisterOrder(orderID string, UserID string, accrual float64) error {
 
 	_, err := handler.db.Exec("INSERT INTO orders (order_id, user_id, accrual) VALUES($1,$2,$3)", orderID, UserID, accrual)
