@@ -182,7 +182,7 @@ func (handler Handler) ordersPost(w http.ResponseWriter, r *http.Request) {
 		log.Println("order number read error", err.Error())
 	}
 	orderID := string(body)
-	if _, err := strconv.Atoi(orderID); err != nil {
+	if _, err := strconv.ParseInt(orderID, 10, 64); err != nil {
 		http.Error(w, "not numeric", http.StatusUnprocessableEntity)
 		return
 	}
