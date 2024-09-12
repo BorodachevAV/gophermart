@@ -45,6 +45,11 @@ func (handler Handler) getAccrual(orderID string) (*AccrualJSONRequest, error) {
 		return nil, err
 	}
 	defer res.Body.Close()
+	if len(buf.Bytes()) == 0 {
+		log.Println("accrual response is empty")
+		return nil, nil
+	}
+
 	log.Println("read json")
 	err = json.Unmarshal(buf.Bytes(), &req)
 	if err != nil {
@@ -200,6 +205,11 @@ func (handler Handler) ordersPost(w http.ResponseWriter, r *http.Request) {
 	} else {
 		accrual, err := handler.getAccrual(orderID)
 		if err != nil {
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+			return
+		}
+		if accrual == nil {
+			log.Println("accrual empty response")
 			http.Error(w, err.Error(), http.StatusInternalServerError)
 			return
 		}
