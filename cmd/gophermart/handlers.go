@@ -11,6 +11,8 @@ import (
 	"log"
 	"net/http"
 	"strconv"
+
+	"github.com/gospacedev/luhn"
 )
 
 type Handler struct {
@@ -173,7 +175,6 @@ func (handler Handler) ordersPost(w http.ResponseWriter, r *http.Request) {
 			http.Error(w, "Unauthorized", http.StatusUnauthorized)
 			return
 		}
-
 	}
 
 	body, err := io.ReadAll(r.Body)
@@ -183,6 +184,11 @@ func (handler Handler) ordersPost(w http.ResponseWriter, r *http.Request) {
 	}
 	orderID := string(body)
 	if _, err := strconv.ParseInt(orderID, 10, 64); err != nil {
+		http.Error(w, "not numeric", http.StatusUnprocessableEntity)
+		return
+	}
+
+	if !luhn.Check(orderID) {
 		http.Error(w, "not numeric", http.StatusUnprocessableEntity)
 		return
 	}
@@ -209,14 +215,10 @@ func (handler Handler) ordersPost(w http.ResponseWriter, r *http.Request) {
 			http.Error(w, err.Error(), http.StatusInternalServerError)
 			return
 		}
-		if accrual == nil {
-			log.Println("accrual empty response", orderID)
-			//http.Error(w, "accrual empty response", http.StatusUnprocessableEntity)
-			//return
-		}
 		log.Println("register order", orderID)
 		var acc float64
 		if accrual == nil {
+			log.Println("accrual empty response", orderID)
 			acc = 0
 
 		} else {
