@@ -37,7 +37,7 @@ func CreateChema(db *DBHandler) error {
 		`CREATE TABLE IF NOT EXISTS orders(
 			order_id VARCHAR(200) PRIMARY KEY,
 			user_id VARCHAR(200) NOT NULL,
-			accrual  int,
+			accrual  float,
 			uploadet_at timestamp default current_timestamp
 		)`
 
@@ -120,7 +120,7 @@ func (handler DBHandler) GetUseIDByOrderID(order string) (string, error) {
 	return ID, nil
 }
 
-func (handler DBHandler) RegisterOrder(orderID string, UserID string, accrual int) error {
+func (handler DBHandler) RegisterOrder(orderID string, UserID string, accrual float64) error {
 
 	_, err := handler.db.Exec("INSERT INTO orders (order_id, user_id, accrual) VALUES($1,$2,$3)", orderID, UserID, accrual)
 	if err != nil {

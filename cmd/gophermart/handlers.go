@@ -26,7 +26,7 @@ type UserJSONRequest struct {
 type AccrualJSONRequest struct {
 	Order   string
 	Status  string
-	Accrual int
+	Accrual float64
 }
 
 func (handler Handler) getAccrual(orderID string) (*AccrualJSONRequest, error) {
