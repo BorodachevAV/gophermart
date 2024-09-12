@@ -210,7 +210,7 @@ func (handler Handler) ordersPost(w http.ResponseWriter, r *http.Request) {
 		}
 		if accrual == nil {
 			log.Println("accrual empty response")
-			http.Error(w, err.Error(), http.StatusInternalServerError)
+			http.Error(w, "accrual empty response", http.StatusInternalServerError)
 			return
 		}
 		log.Println("register order")
