@@ -194,6 +194,8 @@ func (handler Handler) ordersGet(w http.ResponseWriter, r *http.Request) {
 				Processed_at: order[1],
 			}
 			resultOrders = append(resultOrders, resultOrder)
+		} else {
+			log.Println("OrderGet accrual empty")
 		}
 
 	}
