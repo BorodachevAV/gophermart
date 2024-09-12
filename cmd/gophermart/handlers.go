@@ -211,8 +211,8 @@ func (handler Handler) ordersPost(w http.ResponseWriter, r *http.Request) {
 		}
 		if accrual == nil {
 			log.Println("accrual empty response", orderID)
-			http.Error(w, "accrual empty response", http.StatusUnprocessableEntity)
-			return
+			//http.Error(w, "accrual empty response", http.StatusUnprocessableEntity)
+			//return
 		}
 		log.Println("register order", orderID)
 		var acc float64
