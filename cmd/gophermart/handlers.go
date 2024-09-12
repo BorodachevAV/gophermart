@@ -199,6 +199,7 @@ func (handler Handler) ordersPost(w http.ResponseWriter, r *http.Request) {
 			w.WriteHeader(http.StatusOK)
 			return
 		} else {
+			log.Println("order already registered", orderID)
 			http.Error(w, "order already registered", http.StatusConflict)
 			return
 		}
@@ -209,11 +210,11 @@ func (handler Handler) ordersPost(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 		if accrual == nil {
-			log.Println("accrual empty response")
+			log.Println("accrual empty response", orderID)
 			http.Error(w, "accrual empty response", http.StatusInternalServerError)
 			return
 		}
-		log.Println("register order")
+		log.Println("register order", orderID)
 		err = handler.DBhandler.RegisterOrder(orderID, userID.Value, accrual.Accrual)
 		if err != nil {
 			http.Error(w, err.Error(), http.StatusInternalServerError)
