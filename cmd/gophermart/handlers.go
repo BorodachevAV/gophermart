@@ -171,6 +171,7 @@ func (handler Handler) loginPost(w http.ResponseWriter, r *http.Request) {
 }
 
 func (handler Handler) ordersGet(w http.ResponseWriter, r *http.Request) {
+	log.Println("ordersGet called")
 	userID, err := r.Cookie("UserID")
 	if err != nil {
 		if errors.Is(err, http.ErrNoCookie) {
@@ -179,14 +180,14 @@ func (handler Handler) ordersGet(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 	orders, err := handler.DBhandler.GetUserOrdersByUserID(userID.Value)
-	var resultOrders []OrderGetJSON
+	var resultOrders []*OrderGetJSON
 	for _, order := range orders {
 		accrual, err := handler.getAccrual(order[0])
 		if err != nil {
 			log.Println("get order accrual error", err.Error())
 		}
 		if accrual != nil {
-			resultOrder := OrderGetJSON{
+			resultOrder := &OrderGetJSON{
 				Order:        order[0],
 				Status:       accrual.Status,
 				Accrual:      accrual.Accrual,
@@ -197,6 +198,12 @@ func (handler Handler) ordersGet(w http.ResponseWriter, r *http.Request) {
 
 	}
 	log.Println(resultOrders)
+	respBody, _ := json.Marshal(resultOrders)
+	_, err = w.Write(respBody)
+	if err != nil {
+		log.Println(err.Error())
+	}
+
 }
 
 func (handler Handler) ordersPost(w http.ResponseWriter, r *http.Request) {
