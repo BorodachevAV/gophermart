@@ -33,7 +33,7 @@ type AccrualJSONRequest struct {
 
 type OrderGetJSON struct {
 	Order        string  `json:"order"`
-	Status       string  `json:"sttus"`
+	Status       string  `json:"status"`
 	Accrual      float64 `json:"accrual,omitempty"`
 	Processed_at string  `json:"processed_at"`
 }
