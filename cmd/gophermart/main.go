@@ -44,13 +44,13 @@ func main() {
 	handler.AccrualAddress = conf.Cfg.AccrualAddress
 	database.CreateChema(handler.DBhandler)
 	router := chi.NewRouter()
-	router.Post(`/api/user/register`, handler.register_post)
-	router.Post(`/api/user/login`, handler.login_post)
-	router.Get(`/api/user/orders`, handler.orders_get)
-	router.Post(`/api/user/orders`, handler.orders_post)
-	router.Get(`/api/user/balance`, handler.balance_get)
-	router.Post(`/api/user/balance/withdraw`, handler.withdraw_post)
-	router.Get(`/api/user/withdrawals`, handler.withdrawals_get)
+	router.Post(`/api/user/register`, handler.registerPost)
+	router.Post(`/api/user/login`, handler.loginPost)
+	router.Get(`/api/user/orders`, handler.ordersGet)
+	router.Post(`/api/user/orders`, handler.ordersPost)
+	router.Get(`/api/user/balance`, handler.balanceGet)
+	router.Post(`/api/user/balance/withdraw`, handler.withdrawPost)
+	router.Get(`/api/user/withdrawals`, handler.withdrawalsGet)
 
 	log.Fatal(http.ListenAndServe(conf.Cfg.ServerAddress, router))
 }

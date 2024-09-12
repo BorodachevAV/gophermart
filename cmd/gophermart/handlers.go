@@ -29,11 +29,11 @@ type AccrualJSONRequest struct {
 	Accrual int
 }
 
-func (handler Handler) get_accrual(order_id string) (*AccrualJSONRequest, error) {
+func (handler Handler) getAccrual(orderID string) (*AccrualJSONRequest, error) {
 	var req *AccrualJSONRequest
 	var buf bytes.Buffer
 
-	requestURL := fmt.Sprintf("%s/api/orders/%s", handler.AccrualAddress, order_id)
+	requestURL := fmt.Sprintf("%s/api/orders/%s", handler.AccrualAddress, orderID)
 	res, err := http.Get(requestURL)
 	if err != nil {
 		log.Println("get accrual error", err.Error())
@@ -54,7 +54,7 @@ func (handler Handler) get_accrual(order_id string) (*AccrualJSONRequest, error)
 	return req, nil
 }
 
-func (handler Handler) register_post(w http.ResponseWriter, r *http.Request) {
+func (handler Handler) registerPost(w http.ResponseWriter, r *http.Request) {
 	var req UserJSONRequest
 	var buf bytes.Buffer
 	log.Println("read body")
@@ -108,7 +108,7 @@ func (handler Handler) register_post(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusOK)
 }
 
-func (handler Handler) login_post(w http.ResponseWriter, r *http.Request) {
+func (handler Handler) loginPost(w http.ResponseWriter, r *http.Request) {
 	var req UserJSONRequest
 	var buf bytes.Buffer
 
@@ -125,7 +125,10 @@ func (handler Handler) login_post(w http.ResponseWriter, r *http.Request) {
 	}
 
 	sha256Pass, err := auth.SHA256password(req.Password)
-
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
 	pass, err := handler.DBhandler.GetUserPassword(req.Login)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
@@ -153,11 +156,11 @@ func (handler Handler) login_post(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusOK)
 }
 
-func (handler Handler) orders_get(w http.ResponseWriter, r *http.Request) {
+func (handler Handler) ordersGet(w http.ResponseWriter, r *http.Request) {
 
 }
 
-func (handler Handler) orders_post(w http.ResponseWriter, r *http.Request) {
+func (handler Handler) ordersPost(w http.ResponseWriter, r *http.Request) {
 
 	userID, err := r.Cookie("UserID")
 	if err != nil {
@@ -171,17 +174,17 @@ func (handler Handler) orders_post(w http.ResponseWriter, r *http.Request) {
 	body, err := io.ReadAll(r.Body)
 	defer r.Body.Close()
 	if err != nil {
-		log.Println("order number read error", err.Error)
+		log.Println("order number read error", err.Error())
 	}
-	orderId := string(body)
-	if _, err := strconv.Atoi(orderId); err != nil {
+	orderID := string(body)
+	if _, err := strconv.Atoi(orderID); err != nil {
 		http.Error(w, "not numeric", http.StatusUnprocessableEntity)
 		return
 	}
 
 	//check if used
 	log.Println("check if used")
-	DBUserID, err := handler.DBhandler.GetUseIDByOrderID(orderId)
+	DBUserID, err := handler.DBhandler.GetUseIDByOrderID(orderID)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
@@ -195,9 +198,13 @@ func (handler Handler) orders_post(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 	} else {
-		accrual, err := handler.get_accrual(orderId)
+		accrual, err := handler.getAccrual(orderID)
+		if err != nil {
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+			return
+		}
 		log.Println("register order")
-		err = handler.DBhandler.RegisterOrder(orderId, userID.Value, accrual.Accrual)
+		err = handler.DBhandler.RegisterOrder(orderID, userID.Value, accrual.Accrual)
 		if err != nil {
 			http.Error(w, err.Error(), http.StatusInternalServerError)
 			return
@@ -207,14 +214,14 @@ func (handler Handler) orders_post(w http.ResponseWriter, r *http.Request) {
 
 }
 
-func (handler Handler) balance_get(w http.ResponseWriter, r *http.Request) {
+func (handler Handler) balanceGet(w http.ResponseWriter, r *http.Request) {
 
 }
 
-func (handler Handler) withdraw_post(w http.ResponseWriter, r *http.Request) {
+func (handler Handler) withdrawPost(w http.ResponseWriter, r *http.Request) {
 
 }
 
-func (handler Handler) withdrawals_get(w http.ResponseWriter, r *http.Request) {
+func (handler Handler) withdrawalsGet(w http.ResponseWriter, r *http.Request) {
 
 }
