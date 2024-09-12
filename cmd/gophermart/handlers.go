@@ -215,7 +215,14 @@ func (handler Handler) ordersPost(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 		log.Println("register order", orderID)
-		err = handler.DBhandler.RegisterOrder(orderID, userID.Value, accrual.Accrual)
+		var acc float64
+		if accrual == nil {
+			acc = 0
+
+		} else {
+			acc = accrual.Accrual
+		}
+		err = handler.DBhandler.RegisterOrder(orderID, userID.Value, acc)
 		if err != nil {
 			http.Error(w, err.Error(), http.StatusInternalServerError)
 			return
