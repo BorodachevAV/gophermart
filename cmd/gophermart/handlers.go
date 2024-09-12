@@ -24,7 +24,7 @@ type UserJSONRequest struct {
 }
 
 type AccrualJSONRequest struct {
-	Order   int
+	Order   string
 	Status  string
 	Accrual int
 }
