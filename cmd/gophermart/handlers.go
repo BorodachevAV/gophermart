@@ -240,7 +240,7 @@ func (handler Handler) ordersPost(w http.ResponseWriter, r *http.Request) {
 		if accrual == nil {
 			log.Println("accrual empty response", orderID)
 			acc = 0
-			status = ""
+			status = "NEW"
 		} else {
 			acc = accrual.Accrual
 			status = accrual.Status
