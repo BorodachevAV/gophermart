@@ -166,6 +166,9 @@ func (handler Handler) loginPost(w http.ResponseWriter, r *http.Request) {
 func (handler Handler) ordersGet(w http.ResponseWriter, r *http.Request) {
 	log.Println("ordersGet called")
 	userID, err := r.Cookie("UserID")
+
+	w.Header().Add("Content-Type", "application/json")
+
 	if err != nil {
 		if errors.Is(err, http.ErrNoCookie) {
 			http.Error(w, "Unauthorized", http.StatusUnauthorized)
@@ -175,6 +178,7 @@ func (handler Handler) ordersGet(w http.ResponseWriter, r *http.Request) {
 	orders, err := handler.DBhandler.GetOrdersByUserID(userID.Value)
 	log.Println(orders[0])
 	respBody, _ := json.Marshal(orders)
+
 	_, err = w.Write(respBody)
 	if err != nil {
 		log.Println(err.Error())
