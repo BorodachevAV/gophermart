@@ -13,10 +13,10 @@ type DBHandler struct {
 	ctx context.Context
 }
 type OrderGetJSON struct {
-	Order        string  `json:"order"`
+	Order        string  `json:"number"`
 	Status       string  `json:"status"`
 	Accrual      float64 `json:"accrual,omitempty"`
-	Processed_at string  `json:"processed_at"`
+	Processed_at string  `json:"uploaded_at"`
 }
 
 func InitDB(DNS string, ctx context.Context) (*DBHandler, error) {
