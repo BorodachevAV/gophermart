@@ -31,13 +31,6 @@ type AccrualJSONRequest struct {
 	Accrual float64 `json:"accrual,omitempty"`
 }
 
-type OrderGetJSON struct {
-	Order        string  `json:"order"`
-	Status       string  `json:"status"`
-	Accrual      float64 `json:"accrual,omitempty"`
-	Processed_at string  `json:"processed_at"`
-}
-
 func (handler Handler) getAccrual(orderID string) (*AccrualJSONRequest, error) {
 	var req *AccrualJSONRequest
 	var buf bytes.Buffer
@@ -179,28 +172,9 @@ func (handler Handler) ordersGet(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 	}
-	orders, err := handler.DBhandler.GetUserOrdersByUserID(userID.Value)
-	var resultOrders []*OrderGetJSON
-	for _, order := range orders {
-		accrual, err := handler.getAccrual(order[0])
-		if err != nil {
-			log.Println("get order accrual error", err.Error())
-		}
-		if accrual != nil {
-			resultOrder := &OrderGetJSON{
-				Order:        order[0],
-				Status:       accrual.Status,
-				Accrual:      accrual.Accrual,
-				Processed_at: order[1],
-			}
-			resultOrders = append(resultOrders, resultOrder)
-		} else {
-			log.Println("OrderGet accrual empty")
-		}
-
-	}
-	log.Println(resultOrders)
-	respBody, _ := json.Marshal(resultOrders)
+	orders, err := handler.DBhandler.GetOrdersByUserID(userID.Value)
+	log.Println(orders[0])
+	respBody, _ := json.Marshal(orders)
 	_, err = w.Write(respBody)
 	if err != nil {
 		log.Println(err.Error())
@@ -258,6 +232,7 @@ func (handler Handler) ordersPost(w http.ResponseWriter, r *http.Request) {
 		}
 		log.Println("register order", orderID)
 		var acc float64
+		var status string
 		if accrual == nil {
 			log.Println("accrual empty response", orderID)
 			acc = 0
@@ -265,7 +240,8 @@ func (handler Handler) ordersPost(w http.ResponseWriter, r *http.Request) {
 		} else {
 			acc = accrual.Accrual
 		}
-		err = handler.DBhandler.RegisterOrder(orderID, userID.Value, acc)
+		status = accrual.Status
+		err = handler.DBhandler.RegisterOrder(orderID, userID.Value, acc, status)
 		if err != nil {
 			http.Error(w, err.Error(), http.StatusInternalServerError)
 			return

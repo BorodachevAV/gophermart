@@ -12,6 +12,12 @@ type DBHandler struct {
 	db  *sql.DB
 	ctx context.Context
 }
+type OrderGetJSON struct {
+	Order        string  `json:"order"`
+	Status       string  `json:"status"`
+	Accrual      float64 `json:"accrual,omitempty"`
+	Processed_at string  `json:"processed_at"`
+}
 
 func InitDB(DNS string, ctx context.Context) (*DBHandler, error) {
 	db, err := sql.Open("pgx", DNS)
@@ -38,6 +44,7 @@ func CreateChema(db *DBHandler) error {
 			order_id VARCHAR(200) PRIMARY KEY,
 			user_id VARCHAR(200) NOT NULL,
 			accrual  float,
+			status VARCHAR(200),
 			uploadet_at timestamp default current_timestamp
 		)`
 
@@ -120,32 +127,30 @@ func (handler DBHandler) GetUseIDByOrderID(order string) (string, error) {
 	return ID, nil
 }
 
-func (handler DBHandler) GetUserOrdersByUserID(userID string) ([][]string, error) {
-	var results [][]string
-	var temp_slice []string
+func (handler DBHandler) GetOrdersByUserID(userID string) ([]*OrderGetJSON, error) {
+	var results []*OrderGetJSON
 	rows, err := handler.db.Query(
-		"SELECT order_id, uploadet_at FROM orders where user_id =$1", userID)
+		"SELECT order_id, accrual, status, uploadet_at FROM orders where user_id =$1", userID)
 	if err != nil {
 		if err.Error() == sql.ErrNoRows.Error() {
-			return results, nil
+			return nil, nil
 		}
 		log.Println(err.Error())
-		return results, err
+		return nil, err
 	}
-	var temp_ID string
-	var temp_stamp string
 	for rows.Next() {
-		rows.Scan(&temp_ID, &temp_stamp)
-		temp_slice = append(temp_slice, temp_ID, temp_stamp)
-		results = append(results, temp_slice)
+		tmp := &OrderGetJSON{}
+		rows.Scan(
+			&tmp.Order, &tmp.Accrual, &tmp.Status, &tmp.Processed_at)
+		results = append(results, tmp)
 	}
 
 	return results, nil
 }
 
-func (handler DBHandler) RegisterOrder(orderID string, UserID string, accrual float64) error {
+func (handler DBHandler) RegisterOrder(orderID string, UserID string, accrual float64, status string) error {
 
-	_, err := handler.db.Exec("INSERT INTO orders (order_id, user_id, accrual) VALUES($1,$2,$3)", orderID, UserID, accrual)
+	_, err := handler.db.Exec("INSERT INTO orders (order_id, user_id, accrual, status) VALUES($1,$2,$3,$4)", orderID, UserID, accrual, status)
 	if err != nil {
 		return err
 	}
