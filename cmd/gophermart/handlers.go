@@ -236,11 +236,12 @@ func (handler Handler) ordersPost(w http.ResponseWriter, r *http.Request) {
 		if accrual == nil {
 			log.Println("accrual empty response", orderID)
 			acc = 0
-
+			status = ""
 		} else {
 			acc = accrual.Accrual
+			status = accrual.Status
 		}
-		status = accrual.Status
+
 		err = handler.DBhandler.RegisterOrder(orderID, userID.Value, acc, status)
 		if err != nil {
 			http.Error(w, err.Error(), http.StatusInternalServerError)
