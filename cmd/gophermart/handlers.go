@@ -154,7 +154,6 @@ func (handler Handler) loginPost(w http.ResponseWriter, r *http.Request) {
 }
 
 func (handler Handler) ordersGet(w http.ResponseWriter, r *http.Request) {
-	log.Println("ordersGet called")
 	userID, err := r.Cookie("UserID")
 
 	w.Header().Add("Content-Type", "application/json")
@@ -166,14 +165,17 @@ func (handler Handler) ordersGet(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 	orders, err := handler.DBhandler.GetOrdersByUserID(userID.Value)
-	log.Println(orders[0])
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
 	respBody, _ := json.Marshal(orders)
 
 	_, err = w.Write(respBody)
 	if err != nil {
-		log.Println(err.Error())
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
 	}
-
 }
 
 func (handler Handler) ordersPost(w http.ResponseWriter, r *http.Request) {
@@ -273,14 +275,14 @@ func (handler Handler) balanceGet(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
-	withdrawals_sum, err := handler.DBhandler.GetWithdrawalsSum(userID.Value)
+	withdrawalsSum, err := handler.DBhandler.GetWithdrawalsSum(userID.Value)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
 	response := models.BalanceGetJSON{
 		Current:   balance,
-		Withdrawn: withdrawals_sum,
+		Withdrawn: withdrawalsSum,
 	}
 	respBody, _ := json.Marshal(response)
 
@@ -341,12 +343,12 @@ func (handler Handler) withdrawPost(w http.ResponseWriter, r *http.Request) {
 	balance = balance - req.Sum
 
 	err = handler.DBhandler.SetBalance(userID.Value, balance)
+
 	if err != nil {
-		if err != nil {
-			http.Error(w, err.Error(), http.StatusInternalServerError)
-			return
-		}
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
 	}
+
 	err = handler.DBhandler.RegisterWithdrawal(req.Order, userID.Value, req.Sum)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
