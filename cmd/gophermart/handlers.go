@@ -335,6 +335,7 @@ func (handler Handler) withdrawPost(w http.ResponseWriter, r *http.Request) {
 
 	if req.Sum > balance {
 		http.Error(w, "balance too low", http.StatusPaymentRequired)
+		return
 	}
 
 	balance = balance - req.Sum

@@ -242,7 +242,7 @@ func (handler DBHandler) RegisterWithdrawal(orderID string, userID string, withd
 
 func (handler DBHandler) GetUserWithdrawals(userID string) ([]*models.WithdrawalGetJSON, error) {
 	var results []*models.WithdrawalGetJSON
-	rows, err := handler.db.Query("SELECT FROM Withdrawals_log (order_id, withdrawal, processed_at) where user_id =$1", userID)
+	rows, err := handler.db.Query("SELECT order_id, withdrawal, processed_at FROM Withdrawals_log where user_id =$1", userID)
 	if err != nil {
 		if err.Error() == sql.ErrNoRows.Error() {
 			return results, nil
@@ -252,9 +252,14 @@ func (handler DBHandler) GetUserWithdrawals(userID string) ([]*models.Withdrawal
 
 	for rows.Next() {
 		tmp := &models.WithdrawalGetJSON{}
-		rows.Scan(
+		err = rows.Scan(
 			&tmp.Order, &tmp.Withdrawal, &tmp.Processed_at)
+		if err != nil {
+			return nil, err
+		}
+		log.Println(tmp)
 		results = append(results, tmp)
+
 	}
 	return results, nil
 
