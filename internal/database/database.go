@@ -157,6 +157,10 @@ func (handler DBHandler) GetOrdersByUserID(userID string) ([]*models.OrderGetJSO
 		log.Println(err.Error())
 		return nil, err
 	}
+	if rows.Err() != nil {
+		return nil, rows.Err()
+	}
+
 	for rows.Next() {
 		tmp := &models.OrderGetJSON{}
 		rows.Scan(
@@ -190,9 +194,9 @@ func (handler DBHandler) GetBalance(userID string) (float64, error) {
 }
 
 func (handler DBHandler) SetBalance(userID string, balance float64) error {
-	var current_balance float64
+	var currentBalance float64
 	err := handler.db.QueryRow(
-		"SELECT balance FROM balance where user_id =$1", userID).Scan(&current_balance)
+		"SELECT balance FROM balance where user_id =$1", userID).Scan(&currentBalance)
 	if err != nil {
 		if err.Error() == sql.ErrNoRows.Error() {
 			_, err := handler.db.Exec("Insert into balance (balance, user_id) values ($1, $2)", balance, userID)
@@ -211,24 +215,24 @@ func (handler DBHandler) SetBalance(userID string, balance float64) error {
 }
 
 func (handler DBHandler) GetWithdrawalsSum(userID string) (float64, error) {
-	var withdrawal_sum float64
-	var withdrawal_count int
+	var withdrawalSum float64
+	var withdrawalCount int
 	err := handler.db.QueryRow(
-		"SELECT COUNT(*) FROM withdrawals_log where user_id =$1", userID).Scan(&withdrawal_count)
+		"SELECT COUNT(*) FROM withdrawals_log where user_id =$1", userID).Scan(&withdrawalCount)
 	if err != nil {
 		log.Println(err.Error())
 		return 0, err
 	}
-	if withdrawal_count == 0 {
+	if withdrawalCount == 0 {
 		return 0, nil
 	}
 	err = handler.db.QueryRow(
-		"SELECT SUM(withdrawal) FROM withdrawals_log where user_id =$1", userID).Scan(&withdrawal_sum)
+		"SELECT SUM(withdrawal) FROM withdrawals_log where user_id =$1", userID).Scan(&withdrawalSum)
 	if err != nil {
 		log.Println(err.Error())
 		return 0, err
 	}
-	return withdrawal_sum, nil
+	return withdrawalSum, nil
 }
 
 func (handler DBHandler) RegisterWithdrawal(orderID string, userID string, withdrawal float64) error {
@@ -248,6 +252,9 @@ func (handler DBHandler) GetUserWithdrawals(userID string) ([]*models.Withdrawal
 			return results, nil
 		}
 		return nil, err
+	}
+	if rows.Err() != nil {
+		return nil, rows.Err()
 	}
 
 	for rows.Next() {
