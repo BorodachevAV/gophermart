@@ -1,6 +1,7 @@
 package database
 
 import (
+	"BorodachevAV/gophermart/internal/models"
 	"context"
 	"database/sql"
 	"log"
@@ -11,12 +12,6 @@ import (
 type DBHandler struct {
 	db  *sql.DB
 	ctx context.Context
-}
-type OrderGetJSON struct {
-	Order        string  `json:"number"`
-	Status       string  `json:"status"`
-	Accrual      float64 `json:"accrual,omitempty"`
-	Processed_at string  `json:"uploaded_at"`
 }
 
 func InitDB(DNS string, ctx context.Context) (*DBHandler, error) {
@@ -48,11 +43,35 @@ func CreateChema(db *DBHandler) error {
 			uploadet_at timestamp default current_timestamp
 		)`
 
+	createTableBalance :=
+		`CREATE TABLE IF NOT EXISTS balance(
+			user_id VARCHAR(200) PRIMARY KEY,
+			balance  float
+		)`
+
+	createTableBalanceLog :=
+		`CREATE TABLE IF NOT EXISTS Withdrawals_log(
+			order_id VARCHAR(200),
+			user_id VARCHAR(200) NOT NULL,
+			withdrawal float,
+			processed_at timestamp default current_timestamp
+		)`
+
 	_, err := db.db.Exec(createTableUsers)
 	if err != nil {
 		return err
 	}
 	_, err = db.db.Exec(createTableOrders)
+	if err != nil {
+		return err
+	}
+
+	_, err = db.db.Exec(createTableBalance)
+	if err != nil {
+		return err
+	}
+
+	_, err = db.db.Exec(createTableBalanceLog)
 	if err != nil {
 		return err
 	}
@@ -127,8 +146,8 @@ func (handler DBHandler) GetUseIDByOrderID(order string) (string, error) {
 	return ID, nil
 }
 
-func (handler DBHandler) GetOrdersByUserID(userID string) ([]*OrderGetJSON, error) {
-	var results []*OrderGetJSON
+func (handler DBHandler) GetOrdersByUserID(userID string) ([]*models.OrderGetJSON, error) {
+	var results []*models.OrderGetJSON
 	rows, err := handler.db.Query(
 		"SELECT order_id, accrual, status, uploadet_at FROM orders where user_id =$1", userID)
 	if err != nil {
@@ -139,7 +158,7 @@ func (handler DBHandler) GetOrdersByUserID(userID string) ([]*OrderGetJSON, erro
 		return nil, err
 	}
 	for rows.Next() {
-		tmp := &OrderGetJSON{}
+		tmp := &models.OrderGetJSON{}
 		rows.Scan(
 			&tmp.Order, &tmp.Accrual, &tmp.Status, &tmp.Processed_at)
 		results = append(results, tmp)
@@ -155,4 +174,88 @@ func (handler DBHandler) RegisterOrder(orderID string, UserID string, accrual fl
 		return err
 	}
 	return nil
+}
+func (handler DBHandler) GetBalance(userID string) (float64, error) {
+	var balance float64
+
+	err := handler.db.QueryRow(
+		"SELECT balance FROM balance where user_id =$1", userID).Scan(&balance)
+	if err != nil {
+		if err.Error() == sql.ErrNoRows.Error() {
+			return 0, nil
+		}
+		return 0, err
+	}
+	return balance, nil
+}
+
+func (handler DBHandler) SetBalance(userID string, balance float64) error {
+	var current_balance float64
+	err := handler.db.QueryRow(
+		"SELECT balance FROM balance where user_id =$1", userID).Scan(&current_balance)
+	if err != nil {
+		if err.Error() == sql.ErrNoRows.Error() {
+			_, err := handler.db.Exec("Insert into balance (balance, user_id) values ($1, $2)", balance, userID)
+			if err != nil {
+				return err
+			}
+			return nil
+		}
+		return err
+	}
+	_, err = handler.db.Exec("UPDATE balance set balance = $1 where user_id = $2", balance, userID)
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
+func (handler DBHandler) GetWithdrawalsSum(userID string) (float64, error) {
+	var withdrawal_sum float64
+	var withdrawal_count int
+	err := handler.db.QueryRow(
+		"SELECT COUNT(*) FROM withdrawals_log where user_id =$1", userID).Scan(&withdrawal_count)
+	if err != nil {
+		log.Println(err.Error())
+		return 0, err
+	}
+	if withdrawal_count == 0 {
+		return 0, nil
+	}
+	err = handler.db.QueryRow(
+		"SELECT SUM(withdrawal) FROM withdrawals_log where user_id =$1", userID).Scan(&withdrawal_sum)
+	if err != nil {
+		log.Println(err.Error())
+		return 0, err
+	}
+	return withdrawal_sum, nil
+}
+
+func (handler DBHandler) RegisterWithdrawal(orderID string, userID string, withdrawal float64) error {
+
+	_, err := handler.db.Exec("INSERT INTO Withdrawals_log (order_id, user_id, withdrawal) VALUES($1,$2,$3)", orderID, userID, withdrawal)
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
+func (handler DBHandler) GetUserWithdrawals(userID string) ([]*models.WithdrawalGetJSON, error) {
+	var results []*models.WithdrawalGetJSON
+	rows, err := handler.db.Query("SELECT FROM Withdrawals_log (order_id, withdrawal, processed_at) where user_id =$1", userID)
+	if err != nil {
+		if err.Error() == sql.ErrNoRows.Error() {
+			return results, nil
+		}
+		return nil, err
+	}
+
+	for rows.Next() {
+		tmp := &models.WithdrawalGetJSON{}
+		rows.Scan(
+			&tmp.Order, &tmp.Withdrawal, &tmp.Processed_at)
+		results = append(results, tmp)
+	}
+	return results, nil
+
 }

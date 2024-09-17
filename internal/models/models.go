@@ -1,0 +1,35 @@
+package models
+
+type UserJSONRequest struct {
+	Login    string
+	Password string
+}
+
+type WIthdrawJSONRequest struct {
+	Order string
+	Sum   float64
+}
+
+type BalanceGetJSON struct {
+	Current   float64 `json:"current"`
+	Withdrawn float64 `json:"withdrawn"`
+}
+
+type AccrualJSONRequest struct {
+	Order   string
+	Status  string
+	Accrual float64 `json:"accrual,omitempty"`
+}
+
+type OrderGetJSON struct {
+	Order        string  `json:"number"`
+	Status       string  `json:"status"`
+	Accrual      float64 `json:"accrual,omitempty"`
+	Processed_at string  `json:"uploaded_at"`
+}
+
+type WithdrawalGetJSON struct {
+	Order        string `json:"number"`
+	Withdrawal   string `json:"sum"`
+	Processed_at string `json:"processed_at"`
+}

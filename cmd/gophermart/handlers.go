@@ -3,6 +3,7 @@ package main
 import (
 	"BorodachevAV/gophermart/internal/auth"
 	"BorodachevAV/gophermart/internal/database"
+	"BorodachevAV/gophermart/internal/models"
 	"bytes"
 	"encoding/json"
 	"errors"
@@ -20,19 +21,8 @@ type Handler struct {
 	AccrualAddress string
 }
 
-type UserJSONRequest struct {
-	Login    string
-	Password string
-}
-
-type AccrualJSONRequest struct {
-	Order   string
-	Status  string
-	Accrual float64 `json:"accrual,omitempty"`
-}
-
-func (handler Handler) getAccrual(orderID string) (*AccrualJSONRequest, error) {
-	var req *AccrualJSONRequest
+func (handler Handler) getAccrual(orderID string) (*models.AccrualJSONRequest, error) {
+	var req *models.AccrualJSONRequest
 	var buf bytes.Buffer
 
 	requestURL := fmt.Sprintf("%s/api/orders/%s", handler.AccrualAddress, orderID)
@@ -62,7 +52,7 @@ func (handler Handler) getAccrual(orderID string) (*AccrualJSONRequest, error) {
 }
 
 func (handler Handler) registerPost(w http.ResponseWriter, r *http.Request) {
-	var req UserJSONRequest
+	var req models.UserJSONRequest
 	var buf bytes.Buffer
 	log.Println("read body")
 	_, err := buf.ReadFrom(r.Body)
@@ -116,7 +106,7 @@ func (handler Handler) registerPost(w http.ResponseWriter, r *http.Request) {
 }
 
 func (handler Handler) loginPost(w http.ResponseWriter, r *http.Request) {
-	var req UserJSONRequest
+	var req models.UserJSONRequest
 	var buf bytes.Buffer
 
 	_, err := buf.ReadFrom(r.Body)
@@ -251,19 +241,141 @@ func (handler Handler) ordersPost(w http.ResponseWriter, r *http.Request) {
 			http.Error(w, err.Error(), http.StatusInternalServerError)
 			return
 		}
+		balance, err := handler.DBhandler.GetBalance(userID.Value)
+		if err != nil {
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+			return
+		}
+		balance = balance + accrual.Accrual
+		err = handler.DBhandler.SetBalance(userID.Value, balance)
+		if err != nil {
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+			return
+		}
 		w.WriteHeader(http.StatusAccepted)
 	}
 
 }
 
 func (handler Handler) balanceGet(w http.ResponseWriter, r *http.Request) {
+	userID, err := r.Cookie("UserID")
+
+	w.Header().Add("Content-Type", "application/json")
+
+	if err != nil {
+		if errors.Is(err, http.ErrNoCookie) {
+			http.Error(w, "Unauthorized", http.StatusUnauthorized)
+			return
+		}
+	}
+	balance, err := handler.DBhandler.GetBalance(userID.Value)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+	withdrawals_sum, err := handler.DBhandler.GetWithdrawalsSum(userID.Value)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+	response := models.BalanceGetJSON{
+		Current:   balance,
+		Withdrawn: withdrawals_sum,
+	}
+	respBody, _ := json.Marshal(response)
+
+	_, err = w.Write(respBody)
+	if err != nil {
+		log.Println(err.Error())
+	}
 
 }
 
 func (handler Handler) withdrawPost(w http.ResponseWriter, r *http.Request) {
+	var req models.WIthdrawJSONRequest
+	var buf bytes.Buffer
 
+	userID, err := r.Cookie("UserID")
+
+	w.Header().Add("Content-Type", "application/json")
+
+	if err != nil {
+		if errors.Is(err, http.ErrNoCookie) {
+			http.Error(w, "Unauthorized", http.StatusUnauthorized)
+			return
+		}
+	}
+	_, err = buf.ReadFrom(r.Body)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusBadRequest)
+		return
+	}
+	log.Println("read json")
+	err = json.Unmarshal(buf.Bytes(), &req)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusBadRequest)
+		return
+	}
+
+	if _, err := strconv.ParseInt(req.Order, 10, 64); err != nil {
+		http.Error(w, "not numeric", http.StatusUnprocessableEntity)
+		return
+	}
+
+	if !luhn.Check(req.Order) {
+		http.Error(w, "not numeric", http.StatusUnprocessableEntity)
+		return
+	}
+
+	balance, err := handler.DBhandler.GetBalance(userID.Value)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	if req.Sum > balance {
+		http.Error(w, "balance too low", http.StatusPaymentRequired)
+	}
+
+	balance = balance - req.Sum
+
+	err = handler.DBhandler.SetBalance(userID.Value, balance)
+	if err != nil {
+		if err != nil {
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+			return
+		}
+	}
+	err = handler.DBhandler.RegisterWithdrawal(req.Order, userID.Value, req.Sum)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
 }
 
 func (handler Handler) withdrawalsGet(w http.ResponseWriter, r *http.Request) {
+
+	userID, err := r.Cookie("UserID")
+
+	w.Header().Add("Content-Type", "application/json")
+
+	if err != nil {
+		if errors.Is(err, http.ErrNoCookie) {
+			http.Error(w, "Unauthorized", http.StatusUnauthorized)
+			return
+		}
+	}
+
+	response, err := handler.DBhandler.GetUserWithdrawals(userID.Value)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+	respBody, _ := json.Marshal(response)
+
+	_, err = w.Write(respBody)
+	if err != nil {
+		log.Println(err.Error())
+	}
 
 }

@@ -15,7 +15,7 @@ import (
 func main() {
 	conf := config.NewConfig()
 
-	a := flag.String("a", "localhost:8080", "shortener host")
+	a := flag.String("a", "localhost:8080", "server host")
 	r := flag.String("b", "https://zod9d.wiremockapi.cloud", "accrual system address")
 	d := flag.String("d", "postgresql://postgres:password@localhost", "db connect string")
 
