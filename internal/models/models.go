@@ -29,7 +29,7 @@ type OrderGetJSON struct {
 }
 
 type WithdrawalGetJSON struct {
-	Order        string  `json:"number"`
+	Order        string  `json:"order"`
 	Withdrawal   float64 `json:"sum"`
 	Processed_at string  `json:"processed_at"`
 }
