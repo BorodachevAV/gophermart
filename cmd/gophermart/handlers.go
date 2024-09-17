@@ -246,7 +246,7 @@ func (handler Handler) ordersPost(w http.ResponseWriter, r *http.Request) {
 			http.Error(w, err.Error(), http.StatusInternalServerError)
 			return
 		}
-		balance = balance + accrual.Accrual
+		balance = balance + acc
 		err = handler.DBhandler.SetBalance(userID.Value, balance)
 		if err != nil {
 			http.Error(w, err.Error(), http.StatusInternalServerError)
