@@ -164,7 +164,7 @@ func (handler DBHandler) GetOrdersByUserID(userID string) ([]*models.OrderGetJSO
 	for rows.Next() {
 		tmp := &models.OrderGetJSON{}
 		rows.Scan(
-			&tmp.Order, &tmp.Accrual, &tmp.Status, &tmp.Processed_at)
+			&tmp.Order, &tmp.Accrual, &tmp.Status, &tmp.ProcessedAt)
 		results = append(results, tmp)
 	}
 
@@ -260,7 +260,7 @@ func (handler DBHandler) GetUserWithdrawals(userID string) ([]*models.Withdrawal
 	for rows.Next() {
 		tmp := &models.WithdrawalGetJSON{}
 		err = rows.Scan(
-			&tmp.Order, &tmp.Withdrawal, &tmp.Processed_at)
+			&tmp.Order, &tmp.Withdrawal, &tmp.ProcessedAt)
 		if err != nil {
 			return nil, err
 		}

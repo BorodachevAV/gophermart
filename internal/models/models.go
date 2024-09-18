@@ -22,14 +22,14 @@ type AccrualJSONRequest struct {
 }
 
 type OrderGetJSON struct {
-	Order        string  `json:"number"`
-	Status       string  `json:"status"`
-	Accrual      float64 `json:"accrual,omitempty"`
-	Processed_at string  `json:"uploaded_at"`
+	Order       string  `json:"number"`
+	Status      string  `json:"status"`
+	Accrual     float64 `json:"accrual,omitempty"`
+	ProcessedAt string  `json:"uploaded_at"`
 }
 
 type WithdrawalGetJSON struct {
-	Order        string  `json:"order"`
-	Withdrawal   float64 `json:"sum"`
-	Processed_at string  `json:"processed_at"`
+	Order       string  `json:"order"`
+	Withdrawal  float64 `json:"sum"`
+	ProcessedAt string  `json:"processed_at"`
 }
