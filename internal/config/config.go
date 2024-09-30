@@ -1,8 +1,29 @@
 package config
 
 import (
+	"flag"
 	"os"
 )
+
+func InitParams() Config {
+	a := flag.String("a", "localhost:8080", "server host")
+	r := flag.String("b", "https://zod9d.wiremockapi.cloud", "accrual system address")
+	d := flag.String("d", "postgresql://postgres:password@localhost", "db connect string")
+
+	flag.Parse()
+	conf := NewConfig()
+	if conf.Cfg.ServerAddress == "" {
+		conf.Cfg.ServerAddress = *a
+	}
+	if conf.Cfg.AccrualAddress == "" {
+		conf.Cfg.AccrualAddress = *r
+	}
+
+	if conf.Cfg.DataBaseDNS == "" {
+		conf.Cfg.DataBaseDNS = *d
+	}
+	return *conf
+}
 
 type ServerConfig struct {
 	ServerAddress  string

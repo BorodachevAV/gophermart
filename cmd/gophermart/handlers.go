@@ -12,6 +12,7 @@ import (
 	"log"
 	"net/http"
 	"strconv"
+	"time"
 
 	"github.com/gospacedev/luhn"
 )
@@ -21,8 +22,46 @@ type Handler struct {
 	AccrualAddress string
 }
 
-func (handler Handler) getAccrual(orderID string) (*models.AccrualJSONRequest, error) {
-	var req *models.AccrualJSONRequest
+func (handler Handler) processOrder(orderID string, userID string) {
+	for i := 5; i < 5; i++ {
+		accrual, err := handler.getAccrual(orderID)
+		if err != nil {
+			//status INVALID
+			return
+		}
+		var acc float64
+		var status string
+		if accrual == nil {
+			log.Println("accrual empty response", orderID)
+			acc = 0
+			status = ""
+		} else {
+			acc = accrual.Accrual
+			status = accrual.Status
+		}
+		if status == "INVALID" {
+			err = handler.DBhandler.SetStatus(userID, status)
+			return
+		}
+		if status == "PROCESSED" {
+			balance, err := handler.DBhandler.GetBalance(userID)
+			if err != nil {
+				//http.Error(w, err.Error(), http.StatusInternalServerError)
+				return
+			}
+			balance = balance + acc
+			err = handler.DBhandler.SetBalance(userID, balance)
+			if err != nil {
+				//http.Error(w, err.Error(), http.StatusInternalServerError)
+				return
+			}
+			err = handler.DBhandler.SetStatus(userID, status)
+		}
+	}
+	time.Sleep(time.Second)
+}
+func (handler Handler) getAccrual(orderID string) (*models.AccrualRequest, error) {
+	var req *models.AccrualRequest
 	var buf bytes.Buffer
 
 	requestURL := fmt.Sprintf("%s/api/orders/%s", handler.AccrualAddress, orderID)
@@ -52,7 +91,7 @@ func (handler Handler) getAccrual(orderID string) (*models.AccrualJSONRequest, e
 }
 
 func (handler Handler) registerPost(w http.ResponseWriter, r *http.Request) {
-	var req models.UserJSONRequest
+	var req models.UserRequest
 	var buf bytes.Buffer
 	log.Println("read body")
 	_, err := buf.ReadFrom(r.Body)
@@ -106,7 +145,7 @@ func (handler Handler) registerPost(w http.ResponseWriter, r *http.Request) {
 }
 
 func (handler Handler) loginPost(w http.ResponseWriter, r *http.Request) {
-	var req models.UserJSONRequest
+	var req models.UserRequest
 	var buf bytes.Buffer
 
 	_, err := buf.ReadFrom(r.Body)
@@ -221,39 +260,45 @@ func (handler Handler) ordersPost(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 	} else {
-		accrual, err := handler.getAccrual(orderID)
+		err = handler.DBhandler.RegisterOrder(orderID, userID.Value, 0, "PROCESSING")
 		if err != nil {
 			http.Error(w, err.Error(), http.StatusInternalServerError)
 			return
 		}
-		log.Println("register order", orderID)
-		var acc float64
-		var status string
-		if accrual == nil {
-			log.Println("accrual empty response", orderID)
-			acc = 0
-			status = "NEW"
-		} else {
-			acc = accrual.Accrual
-			status = accrual.Status
-		}
+		go handler.processOrder(orderID, userID.Value)
+		// accrual, err := handler.getAccrual(orderID)
+		// if err != nil {
+		// 	http.Error(w, err.Error(), http.StatusInternalServerError)
+		// 	return
+		// }
+		// log.Println("register order", orderID)
+		// var acc float64
+		// var status string
+		// if accrual == nil {
+		// 	log.Println("accrual empty response", orderID)
+		// 	acc = 0
+		// 	status = "NEW"
+		// } else {
+		// 	acc = accrual.Accrual
+		// 	status = accrual.Status
+		// }
 
-		err = handler.DBhandler.RegisterOrder(orderID, userID.Value, acc, status)
-		if err != nil {
-			http.Error(w, err.Error(), http.StatusInternalServerError)
-			return
-		}
-		balance, err := handler.DBhandler.GetBalance(userID.Value)
-		if err != nil {
-			http.Error(w, err.Error(), http.StatusInternalServerError)
-			return
-		}
-		balance = balance + acc
-		err = handler.DBhandler.SetBalance(userID.Value, balance)
-		if err != nil {
-			http.Error(w, err.Error(), http.StatusInternalServerError)
-			return
-		}
+		// err = handler.DBhandler.RegisterOrder(orderID, userID.Value, acc, status)
+		// if err != nil {
+		// 	http.Error(w, err.Error(), http.StatusInternalServerError)
+		// 	return
+		// }
+		// balance, err := handler.DBhandler.GetBalance(userID.Value)
+		// if err != nil {
+		// 	http.Error(w, err.Error(), http.StatusInternalServerError)
+		// 	return
+		// }
+		// balance = balance + acc
+		// err = handler.DBhandler.SetBalance(userID.Value, balance)
+		// if err != nil {
+		// 	http.Error(w, err.Error(), http.StatusInternalServerError)
+		// 	return
+		// }
 		w.WriteHeader(http.StatusAccepted)
 	}
 
@@ -280,7 +325,7 @@ func (handler Handler) balanceGet(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
-	response := models.BalanceGetJSON{
+	response := models.BalanceGet{
 		Current:   balance,
 		Withdrawn: withdrawalsSum,
 	}
@@ -294,7 +339,7 @@ func (handler Handler) balanceGet(w http.ResponseWriter, r *http.Request) {
 }
 
 func (handler Handler) withdrawPost(w http.ResponseWriter, r *http.Request) {
-	var req models.WIthdrawJSONRequest
+	var req models.WIthdrawRequest
 	var buf bytes.Buffer
 
 	userID, err := r.Cookie("UserID")

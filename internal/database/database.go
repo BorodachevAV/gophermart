@@ -78,6 +78,15 @@ func CreateChema(db *DBHandler) error {
 	return nil
 }
 
+func (handler DBHandler) SetStatus(userID string, status string) error {
+
+	_, err := handler.db.Exec("UPDATE orders set status = $1 where user_id = $2", status, userID)
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
 func (handler DBHandler) CheckDuplicateLogin(login string) (bool, error) {
 	var double string
 	err := handler.db.QueryRow(
@@ -146,8 +155,8 @@ func (handler DBHandler) GetUseIDByOrderID(order string) (string, error) {
 	return ID, nil
 }
 
-func (handler DBHandler) GetOrdersByUserID(userID string) ([]*models.OrderGetJSON, error) {
-	var results []*models.OrderGetJSON
+func (handler DBHandler) GetOrdersByUserID(userID string) ([]models.OrderGet, error) {
+	var results []models.OrderGet
 	rows, err := handler.db.Query(
 		"SELECT order_id, accrual, status, uploadet_at FROM orders where user_id =$1", userID)
 	if err != nil {
@@ -162,7 +171,7 @@ func (handler DBHandler) GetOrdersByUserID(userID string) ([]*models.OrderGetJSO
 	}
 
 	for rows.Next() {
-		tmp := &models.OrderGetJSON{}
+		tmp := models.OrderGet{}
 		rows.Scan(
 			&tmp.Order, &tmp.Accrual, &tmp.Status, &tmp.ProcessedAt)
 		results = append(results, tmp)
@@ -218,14 +227,15 @@ func (handler DBHandler) GetWithdrawalsSum(userID string) (float64, error) {
 	var withdrawalSum float64
 	var withdrawalCount int
 	err := handler.db.QueryRow(
-		"SELECT COUNT(*) FROM withdrawals_log where user_id =$1", userID).Scan(&withdrawalCount)
+		"SELECT user_id FROM withdrawals_log where user_id =$1", userID).Scan(&withdrawalCount)
 	if err != nil {
+		if err.Error() == sql.ErrNoRows.Error() {
+			return 0, nil
+		}
 		log.Println(err.Error())
 		return 0, err
 	}
-	if withdrawalCount == 0 {
-		return 0, nil
-	}
+
 	err = handler.db.QueryRow(
 		"SELECT SUM(withdrawal) FROM withdrawals_log where user_id =$1", userID).Scan(&withdrawalSum)
 	if err != nil {
@@ -244,8 +254,8 @@ func (handler DBHandler) RegisterWithdrawal(orderID string, userID string, withd
 	return nil
 }
 
-func (handler DBHandler) GetUserWithdrawals(userID string) ([]*models.WithdrawalGetJSON, error) {
-	var results []*models.WithdrawalGetJSON
+func (handler DBHandler) GetUserWithdrawals(userID string) ([]models.WithdrawalGet, error) {
+	var results []models.WithdrawalGet
 	rows, err := handler.db.Query("SELECT order_id, withdrawal, processed_at FROM Withdrawals_log where user_id =$1", userID)
 	if err != nil {
 		if err.Error() == sql.ErrNoRows.Error() {
@@ -258,7 +268,7 @@ func (handler DBHandler) GetUserWithdrawals(userID string) ([]*models.Withdrawal
 	}
 
 	for rows.Next() {
-		tmp := &models.WithdrawalGetJSON{}
+		tmp := models.WithdrawalGet{}
 		err = rows.Scan(
 			&tmp.Order, &tmp.Withdrawal, &tmp.ProcessedAt)
 		if err != nil {
