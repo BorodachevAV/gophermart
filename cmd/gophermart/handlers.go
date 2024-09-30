@@ -23,19 +23,23 @@ type Handler struct {
 }
 
 func (handler Handler) processOrder(orderID string, userID string) {
+	var acc float64
+	var status string
 	for i := 5; i < 5; i++ {
 		accrual, err := handler.getAccrual(orderID)
 		if err != nil {
 			//status INVALID
 			return
 		}
-		var acc float64
-		var status string
+
 		if accrual == nil {
 			log.Println("accrual empty response", orderID)
 			acc = 0
 			status = ""
 		} else {
+			log.Println("accrual status", accrual.Status)
+			log.Println("accrual sum", accrual.Accrual)
+
 			acc = accrual.Accrual
 			status = accrual.Status
 		}
