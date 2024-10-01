@@ -71,11 +71,12 @@ func (handler Handler) processOrder(orderID string, userID string) {
 				log.Println("error")
 				return
 			}
-			err = handler.DBhandler.SetStatus(userID, status)
+			err = handler.DBhandler.SetStatus(userID, "PROCESSED")
 			if err != nil {
 				log.Println("error")
 				return
 			}
+			log.Println(orderID, "order processed")
 			return
 		}
 		time.Sleep(100 * time.Millisecond)
