@@ -47,6 +47,7 @@ func (handler Handler) processOrder(orderID string, userID string) {
 			status = accrual.Status
 		}
 		if status == "PROCESSING" || status == "" {
+			log.Println("waiting accrual processing")
 			time.Sleep(10 * time.Millisecond)
 			break
 		}
