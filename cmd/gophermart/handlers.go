@@ -12,6 +12,7 @@ import (
 	"log"
 	"net/http"
 	"strconv"
+	"time"
 
 	"github.com/gospacedev/luhn"
 )
@@ -46,6 +47,7 @@ func (handler Handler) processOrder(orderID string, userID string) {
 			status = accrual.Status
 		}
 		if status == "PROCESSING" || status == "" {
+			time.Sleep(100 * time.Millisecond)
 			break
 		}
 		if status == "INVALID" {
@@ -76,8 +78,9 @@ func (handler Handler) processOrder(orderID string, userID string) {
 			}
 			return
 		}
+		time.Sleep(100 * time.Millisecond)
 	}
-	//time.Sleep(100 * time.Millisecond)
+
 }
 func (handler Handler) getAccrual(orderID string) (*models.AccrualRequest, error) {
 	var req *models.AccrualRequest
