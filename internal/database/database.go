@@ -228,9 +228,9 @@ func (handler DBHandler) SetBalance(userID string, balance float64) error {
 
 func (handler DBHandler) GetWithdrawalsSum(userID string) (float64, error) {
 	var withdrawalSum float64
-	var withdrawalCount int
+	var HasUser string
 	err := handler.db.QueryRow(
-		"SELECT user_id FROM withdrawals_log where user_id =$1", userID).Scan(&withdrawalCount)
+		"SELECT user_id FROM withdrawals_log where user_id =$1", userID).Scan(&HasUser)
 	if err != nil {
 		if err.Error() == sql.ErrNoRows.Error() {
 			return 0, nil
