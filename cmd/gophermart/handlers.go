@@ -12,7 +12,6 @@ import (
 	"log"
 	"net/http"
 	"strconv"
-	"time"
 
 	"github.com/gospacedev/luhn"
 )
@@ -25,11 +24,14 @@ type Handler struct {
 func (handler Handler) processOrder(orderID string, userID string) {
 	var acc float64
 	var status string
-	for i := 5; i < 5; i++ {
+	log.Println("processing start")
+	for i := 1; i < 10; i++ {
+		log.Println("accrual start")
 		accrual, err := handler.getAccrual(orderID)
 		if err != nil {
-			//status INVALID
+			log.Println("accrual error")
 			return
+
 		}
 
 		if accrual == nil {
@@ -43,26 +45,39 @@ func (handler Handler) processOrder(orderID string, userID string) {
 			acc = accrual.Accrual
 			status = accrual.Status
 		}
+		if status == "PROCESSING" {
+			break
+		}
 		if status == "INVALID" {
 			err = handler.DBhandler.SetStatus(userID, status)
+			if err != nil {
+				log.Println("error")
+				return
+			}
 			return
 		}
 		if status == "PROCESSED" {
 			balance, err := handler.DBhandler.GetBalance(userID)
 			if err != nil {
+				log.Println("error")
 				//http.Error(w, err.Error(), http.StatusInternalServerError)
 				return
 			}
 			balance = balance + acc
 			err = handler.DBhandler.SetBalance(userID, balance)
 			if err != nil {
-				//http.Error(w, err.Error(), http.StatusInternalServerError)
+				log.Println("error")
 				return
 			}
 			err = handler.DBhandler.SetStatus(userID, status)
+			if err != nil {
+				log.Println("error")
+				return
+			}
+			return
 		}
 	}
-	time.Sleep(time.Second)
+	//time.Sleep(100 * time.Millisecond)
 }
 func (handler Handler) getAccrual(orderID string) (*models.AccrualRequest, error) {
 	var req *models.AccrualRequest
@@ -269,40 +284,9 @@ func (handler Handler) ordersPost(w http.ResponseWriter, r *http.Request) {
 			http.Error(w, err.Error(), http.StatusInternalServerError)
 			return
 		}
+		log.Println("process order")
 		go handler.processOrder(orderID, userID.Value)
-		// accrual, err := handler.getAccrual(orderID)
-		// if err != nil {
-		// 	http.Error(w, err.Error(), http.StatusInternalServerError)
-		// 	return
-		// }
-		// log.Println("register order", orderID)
-		// var acc float64
-		// var status string
-		// if accrual == nil {
-		// 	log.Println("accrual empty response", orderID)
-		// 	acc = 0
-		// 	status = "NEW"
-		// } else {
-		// 	acc = accrual.Accrual
-		// 	status = accrual.Status
-		// }
 
-		// err = handler.DBhandler.RegisterOrder(orderID, userID.Value, acc, status)
-		// if err != nil {
-		// 	http.Error(w, err.Error(), http.StatusInternalServerError)
-		// 	return
-		// }
-		// balance, err := handler.DBhandler.GetBalance(userID.Value)
-		// if err != nil {
-		// 	http.Error(w, err.Error(), http.StatusInternalServerError)
-		// 	return
-		// }
-		// balance = balance + acc
-		// err = handler.DBhandler.SetBalance(userID.Value, balance)
-		// if err != nil {
-		// 	http.Error(w, err.Error(), http.StatusInternalServerError)
-		// 	return
-		// }
 		w.WriteHeader(http.StatusAccepted)
 	}
 
