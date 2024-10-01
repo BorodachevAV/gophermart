@@ -194,9 +194,12 @@ func (handler DBHandler) GetBalance(userID string) (float64, error) {
 	err := handler.db.QueryRow(
 		"SELECT balance FROM balance where user_id =$1", userID).Scan(&balance)
 	if err != nil {
+
 		if err.Error() == sql.ErrNoRows.Error() {
+
 			return 0, nil
 		}
+		log.Println("GetBalance error")
 		return 0, err
 	}
 	return balance, nil
