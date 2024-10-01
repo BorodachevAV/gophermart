@@ -12,7 +12,6 @@ import (
 	"log"
 	"net/http"
 	"strconv"
-	"time"
 
 	"github.com/gospacedev/luhn"
 )
@@ -48,7 +47,7 @@ func (handler Handler) processOrder(orderID string, userID string) {
 		}
 		if status == "PROCESSING" || status == "" {
 			log.Println("waiting accrual processing")
-			time.Sleep(10 * time.Millisecond)
+			//time.Sleep(10 * time.Millisecond)
 			break
 		}
 		if status == "INVALID" {
@@ -80,7 +79,7 @@ func (handler Handler) processOrder(orderID string, userID string) {
 			log.Println(orderID, "order processed")
 			return
 		}
-		time.Sleep(10 * time.Millisecond)
+		//time.Sleep(10 * time.Millisecond)
 	}
 
 }
