@@ -79,7 +79,7 @@ func (handler Handler) processOrder(orderID string, userID string) {
 			log.Println(orderID, "order processed")
 			return
 		}
-		time.Sleep(100 * time.Millisecond)
+		time.Sleep(10 * time.Millisecond)
 	}
 
 }
