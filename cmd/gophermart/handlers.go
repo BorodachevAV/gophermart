@@ -45,7 +45,7 @@ func (handler Handler) processOrder(orderID string, userID string) {
 			acc = accrual.Accrual
 			status = accrual.Status
 		}
-		if status == "PROCESSING" {
+		if status == "PROCESSING" || status == "" {
 			break
 		}
 		if status == "INVALID" {
