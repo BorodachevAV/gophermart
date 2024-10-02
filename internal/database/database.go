@@ -242,7 +242,13 @@ func (handler DBHandler) SetBalance(userID string, balance float64) error {
 		}
 		return err
 	}
+	if err := tx.Commit(); err != nil {
+		return err
+	}
 	stmt, err = tx.Prepare("UPDATE balance set balance = $1 where user_id = $2")
+	if err != nil {
+		return err
+	}
 	_, err = stmt.Exec(balance, userID)
 	if err != nil {
 		tx.Rollback()
