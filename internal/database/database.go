@@ -4,7 +4,6 @@ import (
 	"BorodachevAV/gophermart/internal/models"
 	"context"
 	"database/sql"
-	"errors"
 	"log"
 
 	_ "github.com/jackc/pgx/v5/stdlib"
@@ -189,6 +188,15 @@ func (handler DBHandler) RegisterOrder(orderID string, UserID string, accrual fl
 	}
 	return nil
 }
+
+func (handler DBHandler) SetOrderAccrual(orderID string, accrual float64) error {
+	_, err := handler.db.Exec("Update orders set accrual = ($1) where order_id = $2", accrual, orderID)
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
 func (handler DBHandler) GetBalance(userID string) (float64, error) {
 	var balance float64
 
@@ -207,22 +215,9 @@ func (handler DBHandler) GetBalance(userID string) (float64, error) {
 }
 
 func (handler DBHandler) SetBalance(userID string, balance float64) error {
-
 	var currentBalance float64
-
-	tx, err := handler.db.BeginTx(handler.ctx, nil)
-	if err != nil {
-		return err
-	}
-	defer func() {
-		if err := tx.Rollback(); err != nil {
-			if !errors.Is(err, sql.ErrTxDone) {
-				log.Printf("failed to rollback the transaction: %v", err)
-			}
-		}
-	}()
-	stmt, err := tx.Prepare("SELECT balance FROM balance where user_id =$1")
-	stmt.QueryRow(userID).Scan(&currentBalance)
+	err := handler.db.QueryRow(
+		"SELECT balance FROM balance where user_id =$1", userID).Scan(&currentBalance)
 	if err != nil {
 		if err.Error() == sql.ErrNoRows.Error() {
 			_, err := handler.db.Exec("Insert into balance (balance, user_id) values ($1, $2)", balance, userID)
@@ -233,19 +228,8 @@ func (handler DBHandler) SetBalance(userID string, balance float64) error {
 		}
 		return err
 	}
-	if err := tx.Commit(); err != nil {
-		return err
-	}
-	stmt, err = tx.Prepare("UPDATE balance set balance = $1 where user_id = $2")
+	_, err = handler.db.Exec("UPDATE balance set balance = $1 where user_id = $2", balance, userID)
 	if err != nil {
-		return err
-	}
-	_, err = stmt.Exec(balance, userID)
-	if err != nil {
-		tx.Rollback()
-		return err
-	}
-	if err := tx.Commit(); err != nil {
 		return err
 	}
 	return nil
