@@ -4,6 +4,7 @@ import (
 	"BorodachevAV/gophermart/internal/models"
 	"context"
 	"database/sql"
+	"errors"
 	"log"
 
 	_ "github.com/jackc/pgx/v5/stdlib"
@@ -215,9 +216,40 @@ func (handler DBHandler) GetBalance(userID string) (float64, error) {
 }
 
 func (handler DBHandler) SetBalance(userID string, balance float64) error {
+
+	//
+	// stmt, err := tx.Prepare("UPDATE url_storage SET deleted_flag = TRUE where (short_url=$1 and user_id=$2)")
+	// if err != nil {
+	// 	log.Fatal(err)
+	// }
+	// for _, sd := range sd {
+	// 	log.Println("sd is", sd.ShortURL, sd.UserID)
+	// 	if _, err := stmt.Exec(sd.ShortURL, sd.UserID); err != nil {
+	// 		tx.Rollback()
+	// 		return err
+	// 	}
+	// }
+
+	// if err := tx.Commit(); err != nil {
+	// 	return fmt.Errorf("failed to commit the transaction: %w", err)
+	// }
+	// return nil
+
 	var currentBalance float64
-	err := handler.db.QueryRow(
-		"SELECT balance FROM balance where user_id =$1", userID).Scan(&currentBalance)
+
+	tx, err := handler.db.BeginTx(handler.ctx, nil)
+	if err != nil {
+		return err
+	}
+	defer func() {
+		if err := tx.Rollback(); err != nil {
+			if !errors.Is(err, sql.ErrTxDone) {
+				log.Printf("failed to rollback the transaction: %v", err)
+			}
+		}
+	}()
+	stmt, err := tx.Prepare("SELECT balance FROM balance where user_id =$1")
+	stmt.QueryRow(userID).Scan(&currentBalance)
 	if err != nil {
 		if err.Error() == sql.ErrNoRows.Error() {
 			_, err := handler.db.Exec("Insert into balance (balance, user_id) values ($1, $2)", balance, userID)
@@ -228,7 +260,8 @@ func (handler DBHandler) SetBalance(userID string, balance float64) error {
 		}
 		return err
 	}
-	_, err = handler.db.Exec("UPDATE balance set balance = $1 where user_id = $2", balance, userID)
+	stmt, err = tx.Prepare("UPDATE balance set balance = $1 where user_id = $2")
+	_, err = stmt.Exec(balance, userID)
 	if err != nil {
 		return err
 	}
