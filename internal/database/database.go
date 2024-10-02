@@ -189,15 +189,6 @@ func (handler DBHandler) RegisterOrder(orderID string, UserID string, accrual fl
 	}
 	return nil
 }
-
-func (handler DBHandler) SetOrderAccrual(orderID string, accrual float64) error {
-	_, err := handler.db.Exec("Update orders set accrual = ($1) where order_id = $2", accrual, orderID)
-	if err != nil {
-		return err
-	}
-	return nil
-}
-
 func (handler DBHandler) GetBalance(userID string) (float64, error) {
 	var balance float64
 

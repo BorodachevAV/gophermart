@@ -12,7 +12,6 @@ import (
 	"log"
 	"net/http"
 	"strconv"
-	"time"
 
 	"github.com/gospacedev/luhn"
 )
@@ -48,7 +47,7 @@ func (handler Handler) processOrder(orderID string, userID string) {
 		}
 		if status == "PROCESSING" || status == "" {
 			log.Println("waiting accrual processing")
-			time.Sleep(100 * time.Millisecond)
+			//time.Sleep(10 * time.Millisecond)
 			break
 		}
 		if status == "INVALID" {
@@ -60,12 +59,6 @@ func (handler Handler) processOrder(orderID string, userID string) {
 			return
 		}
 		if status == "PROCESSED" {
-
-			err = handler.DBhandler.SetOrderAccrual(orderID, acc)
-			if err != nil {
-				log.Println("error")
-				return
-			}
 			balance, err := handler.DBhandler.GetBalance(userID)
 			if err != nil {
 				log.Println("error")
@@ -86,7 +79,7 @@ func (handler Handler) processOrder(orderID string, userID string) {
 			log.Println(orderID, "order processed")
 			return
 		}
-		time.Sleep(100 * time.Millisecond)
+		//time.Sleep(10 * time.Millisecond)
 	}
 
 }
@@ -238,7 +231,6 @@ func (handler Handler) ordersGet(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
-	log.Println(orders)
 	respBody, _ := json.Marshal(orders)
 
 	_, err = w.Write(respBody)
