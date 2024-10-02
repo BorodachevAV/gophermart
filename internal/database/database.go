@@ -217,24 +217,6 @@ func (handler DBHandler) GetBalance(userID string) (float64, error) {
 
 func (handler DBHandler) SetBalance(userID string, balance float64) error {
 
-	//
-	// stmt, err := tx.Prepare("UPDATE url_storage SET deleted_flag = TRUE where (short_url=$1 and user_id=$2)")
-	// if err != nil {
-	// 	log.Fatal(err)
-	// }
-	// for _, sd := range sd {
-	// 	log.Println("sd is", sd.ShortURL, sd.UserID)
-	// 	if _, err := stmt.Exec(sd.ShortURL, sd.UserID); err != nil {
-	// 		tx.Rollback()
-	// 		return err
-	// 	}
-	// }
-
-	// if err := tx.Commit(); err != nil {
-	// 	return fmt.Errorf("failed to commit the transaction: %w", err)
-	// }
-	// return nil
-
 	var currentBalance float64
 
 	tx, err := handler.db.BeginTx(handler.ctx, nil)
@@ -263,6 +245,10 @@ func (handler DBHandler) SetBalance(userID string, balance float64) error {
 	stmt, err = tx.Prepare("UPDATE balance set balance = $1 where user_id = $2")
 	_, err = stmt.Exec(balance, userID)
 	if err != nil {
+		tx.Rollback()
+		return err
+	}
+	if err := tx.Commit(); err != nil {
 		return err
 	}
 	return nil
