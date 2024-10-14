@@ -384,8 +384,8 @@ func (handler Handler) ordersPost(w http.ResponseWriter, r *http.Request) {
 			http.Error(w, err.Error(), http.StatusInternalServerError)
 			return
 		}
-		log.Println("process order")
-		go handler.processOrder(orderID, userID.Value)
+		// log.Println("process order")
+		// go handler.processOrder(orderID, userID.Value)
 
 		w.WriteHeader(http.StatusAccepted)
 	}
