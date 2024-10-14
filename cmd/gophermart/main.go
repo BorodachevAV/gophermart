@@ -35,6 +35,6 @@ func main() {
 		r.Post("/balance/withdraw", handler.withdrawPost)
 		r.Get("/withdrawals", handler.withdrawalsGet)
 	})
-
+	handler.OrderProcessLoop()
 	log.Fatal(http.ListenAndServe(conf.Cfg.ServerAddress, router))
 }
