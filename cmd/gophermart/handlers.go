@@ -22,6 +22,94 @@ type Handler struct {
 	AccrualAddress string
 }
 
+func (handler Handler) OrderProcessLoop() {
+	for {
+		orders, err := handler.DBhandler.GetUnprocessedOrders()
+		if err != nil {
+			log.Println(err.Error())
+		}
+
+		if len(orders) == 0 {
+			time.Sleep(time.Second)
+			break
+		}
+
+		for _, order := range orders {
+			go handler.NewProcessOrder(order)
+		}
+	}
+}
+
+func (handler Handler) NewProcessOrder(orderID string) {
+	var acc float64
+	var status string
+	userID, err := handler.DBhandler.GetUseIDByOrderID(orderID)
+	if err != nil {
+		return
+	}
+	for i := 1; i < 10; i++ {
+		log.Println("accrual start")
+		accrual, err := handler.getAccrual(orderID)
+		if err != nil {
+			log.Println("accrual error")
+			return
+		}
+
+		if accrual == nil {
+			log.Println("accrual empty response", orderID)
+			acc = 0
+			status = ""
+		} else {
+			log.Println("accrual status", accrual.Status)
+			log.Println("accrual sum", accrual.Accrual)
+
+			acc = accrual.Accrual
+			status = accrual.Status
+		}
+		if status == "PROCESSING" || status == "" {
+			log.Println("waiting accrual processing")
+			time.Sleep(100 * time.Millisecond)
+			break
+		}
+		if status == "INVALID" {
+			err = handler.DBhandler.SetStatus(userID, status)
+			if err != nil {
+				log.Println("error")
+				return
+			}
+			return
+		}
+		if status == "PROCESSED" {
+
+			err = handler.DBhandler.SetOrderAccrual(orderID, acc)
+			if err != nil {
+				log.Println("error")
+				return
+			}
+			balance, err := handler.DBhandler.GetBalance(userID)
+			if err != nil {
+				log.Println("error")
+				//http.Error(w, err.Error(), http.StatusInternalServerError)
+				return
+			}
+			balance = balance + acc
+			err = handler.DBhandler.SetBalance(userID, balance)
+			if err != nil {
+				log.Println("error")
+				return
+			}
+			err = handler.DBhandler.SetStatus(userID, "PROCESSED")
+			if err != nil {
+				log.Println("error")
+				return
+			}
+			log.Println(orderID, "order processed")
+			return
+		}
+		time.Sleep(100 * time.Millisecond)
+	}
+}
+
 func (handler Handler) processOrder(orderID string, userID string) {
 	var acc float64
 	var status string

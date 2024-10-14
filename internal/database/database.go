@@ -78,6 +78,26 @@ func CreateChema(db *DBHandler) error {
 	return nil
 }
 
+func (handler DBHandler) GetUnprocessedOrders() ([]string, error) {
+	orders := []string{}
+	rows, err := handler.db.Query(
+		"SELECT top 5 order_id FROM orders where status='PROCESSING'")
+	if err != nil {
+		if err.Error() == sql.ErrNoRows.Error() {
+			return orders, nil
+		}
+		log.Println(err.Error())
+		return orders, err
+	}
+	var tmp string
+	for rows.Next() {
+		rows.Scan(&tmp)
+		orders = append(orders, tmp)
+	}
+
+	return orders, nil
+}
+
 func (handler DBHandler) SetStatus(userID string, status string) error {
 
 	_, err := handler.db.Exec("UPDATE orders set status = $1 where user_id = $2", status, userID)
