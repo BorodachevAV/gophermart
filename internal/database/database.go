@@ -81,7 +81,7 @@ func CreateChema(db *DBHandler) error {
 func (handler DBHandler) GetUnprocessedOrders() ([]string, error) {
 	orders := []string{}
 	rows, err := handler.db.Query(
-		"SELECT top 5 order_id FROM orders where status='PROCESSING'")
+		"SELECT order_id FROM orders where status='PROCESSING' limit 5")
 	if err != nil {
 		if err.Error() == sql.ErrNoRows.Error() {
 			return orders, nil
