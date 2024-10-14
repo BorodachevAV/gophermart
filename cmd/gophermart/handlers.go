@@ -23,6 +23,7 @@ type Handler struct {
 }
 
 func (handler Handler) OrderProcessLoop() {
+	log.Println("starting lop")
 	for {
 		orders, err := handler.DBhandler.GetUnprocessedOrders()
 		if err != nil {
@@ -30,13 +31,17 @@ func (handler Handler) OrderProcessLoop() {
 		}
 
 		if len(orders) == 0 {
+			log.Println("no orders")
 			time.Sleep(time.Second)
-			break
+
+		} else {
+			log.Println("Orders found", len(orders))
+			for _, order := range orders {
+				go handler.NewProcessOrder(order)
+			}
+			time.Sleep(time.Second)
 		}
 
-		for _, order := range orders {
-			go handler.NewProcessOrder(order)
-		}
 	}
 }
 
