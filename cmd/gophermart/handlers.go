@@ -2,7 +2,7 @@ package main
 
 import (
 	"BorodachevAV/gophermart/internal/auth"
-	"BorodachevAV/gophermart/internal/customErrors"
+	customerrors "BorodachevAV/gophermart/internal/customErrors"
 	"BorodachevAV/gophermart/internal/database"
 	"BorodachevAV/gophermart/internal/models"
 	"bytes"
@@ -139,7 +139,7 @@ func (handler Handler) getAccrual(orderID string) (*models.AccrualRequest, error
 		return nil, err
 	}
 	if res.StatusCode == 429 {
-		return nil, &customErrors.AccrualRateLimitError{}
+		return nil, &customerrors.AccrualRateLimitError{}
 	}
 	_, err = buf.ReadFrom(res.Body)
 	if err != nil {
