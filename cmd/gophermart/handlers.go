@@ -2,6 +2,7 @@ package main
 
 import (
 	"BorodachevAV/gophermart/internal/auth"
+	"BorodachevAV/gophermart/internal/customErrors"
 	"BorodachevAV/gophermart/internal/database"
 	"BorodachevAV/gophermart/internal/models"
 	"bytes"
@@ -24,7 +25,16 @@ type Handler struct {
 
 func (handler Handler) OrderProcessLoop() {
 	log.Println("starting lop")
+	rateLimitCh := make(chan error)
+	defer close(rateLimitCh)
+
 	for {
+		if len(rateLimitCh) != 0 {
+			time.Sleep(time.Second * 5)
+			for len(rateLimitCh) > 0 {
+				<-rateLimitCh
+			}
+		}
 		orders, err := handler.DBhandler.GetUnprocessedOrders()
 		if err != nil {
 			log.Println(err.Error())
@@ -37,7 +47,7 @@ func (handler Handler) OrderProcessLoop() {
 		} else {
 			log.Println("Orders found", len(orders))
 			for _, order := range orders {
-				go handler.NewProcessOrder(order)
+				go handler.NewProcessOrder(order, rateLimitCh)
 			}
 			time.Sleep(time.Second)
 		}
@@ -45,7 +55,7 @@ func (handler Handler) OrderProcessLoop() {
 	}
 }
 
-func (handler Handler) NewProcessOrder(orderID string) {
+func (handler Handler) NewProcessOrder(orderID string, rateLimitChannel chan error) {
 	var acc float64
 	var status string
 	userID, err := handler.DBhandler.GetUseIDByOrderID(orderID)
@@ -57,6 +67,9 @@ func (handler Handler) NewProcessOrder(orderID string) {
 		accrual, err := handler.getAccrual(orderID)
 		if err != nil {
 			log.Println("accrual error")
+			if err.Error() == "Accrual rate limit error" {
+				rateLimitChannel <- err
+			}
 			return
 		}
 
@@ -115,74 +128,6 @@ func (handler Handler) NewProcessOrder(orderID string) {
 	}
 }
 
-func (handler Handler) processOrder(orderID string, userID string) {
-	var acc float64
-	var status string
-	log.Println("processing start")
-	for i := 1; i < 10; i++ {
-		log.Println("accrual start")
-		accrual, err := handler.getAccrual(orderID)
-		if err != nil {
-			log.Println("accrual error")
-			return
-
-		}
-
-		if accrual == nil {
-			log.Println("accrual empty response", orderID)
-			acc = 0
-			status = ""
-		} else {
-			log.Println("accrual status", accrual.Status)
-			log.Println("accrual sum", accrual.Accrual)
-
-			acc = accrual.Accrual
-			status = accrual.Status
-		}
-		if status == "PROCESSING" || status == "" {
-			log.Println("waiting accrual processing")
-			time.Sleep(100 * time.Millisecond)
-			break
-		}
-		if status == "INVALID" {
-			err = handler.DBhandler.SetStatus(userID, status)
-			if err != nil {
-				log.Println("error")
-				return
-			}
-			return
-		}
-		if status == "PROCESSED" {
-
-			err = handler.DBhandler.SetOrderAccrual(orderID, acc)
-			if err != nil {
-				log.Println("error")
-				return
-			}
-			balance, err := handler.DBhandler.GetBalance(userID)
-			if err != nil {
-				log.Println("error")
-				//http.Error(w, err.Error(), http.StatusInternalServerError)
-				return
-			}
-			balance = balance + acc
-			err = handler.DBhandler.SetBalance(userID, balance)
-			if err != nil {
-				log.Println("error")
-				return
-			}
-			err = handler.DBhandler.SetStatus(userID, "PROCESSED")
-			if err != nil {
-				log.Println("error")
-				return
-			}
-			log.Println(orderID, "order processed")
-			return
-		}
-		time.Sleep(100 * time.Millisecond)
-	}
-
-}
 func (handler Handler) getAccrual(orderID string) (*models.AccrualRequest, error) {
 	var req *models.AccrualRequest
 	var buf bytes.Buffer
@@ -192,6 +137,9 @@ func (handler Handler) getAccrual(orderID string) (*models.AccrualRequest, error
 	if err != nil {
 		log.Println("get accrual error", err.Error())
 		return nil, err
+	}
+	if res.StatusCode == 429 {
+		return nil, &customErrors.AccrualRateLimitError{}
 	}
 	_, err = buf.ReadFrom(res.Body)
 	if err != nil {

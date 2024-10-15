@@ -89,6 +89,9 @@ func (handler DBHandler) GetUnprocessedOrders() ([]string, error) {
 		log.Println(err.Error())
 		return orders, err
 	}
+	if rows.Err() != nil {
+		return nil, rows.Err()
+	}
 	var tmp string
 	for rows.Next() {
 		rows.Scan(&tmp)
